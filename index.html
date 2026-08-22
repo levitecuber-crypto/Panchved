@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panchved Hair Oil - Scroll Animation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #0b110a;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .scroll-container {
+      height: 500vh;
+      position: relative;
+    }
+
+    .sticky-wrapper {
+      position: sticky;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0b110a;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s ease;
+    }
+
+    .loading-overlay h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    .loading-overlay p {
+      font-size: 1.25rem;
+      color: #a0a0a0;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loader" class="loading-overlay">
+    <h2>Loading Panchved Experience...</h2>
+    <p id="progress-text">0%</p>
+  </div>
+
+  <div class="scroll-container" id="scroll-container">
+    <div class="sticky-wrapper">
+      <canvas id="hero-canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Configuration matching frame006.png through frame289.png
+    const FRAME_COUNT = 284;  // Total frames: 289 - 6 + 1 = 284
+    const FRAME_OFFSET = 6;   // Starting file offset (frame006.png)
+
+    const canvas = document.getElementById("hero-canvas");
+    const context = canvas.getContext("2d");
+    const scrollContainer = document.getElementById("scroll-container");
+    const loader = document.getElementById("loader");
+    const progressText = document.getElementById("progress-text");
+
+    const images = [];
+    let loadedCount = 0;
+    let currentFrameIndex = 0;
+
+    const currentFramePath = (index) =>
+      `assets/panchved-frames/frame${(index + FRAME_OFFSET).toString().padStart(3, '0')}.png`;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth * window.devicePixelRatio;
+      canvas.height = window.innerHeight * window.devicePixelRatio;
+      renderFrame(currentFrameIndex);
+    }
+
+    function renderFrame(index) {
+      const img = images[index];
+      if (!img || !img.complete) return;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      const hRatio = canvas.width / img.width;
+      const vRatio = canvas.height / img.height;
+      const ratio = Math.max(hRatio, vRatio);
+
+      const centerShift_x = (canvas.width - img.width * ratio) / 2;
+      const centerShift_y = (canvas.height - img.height * ratio) / 2;
+
+      context.drawImage(
+        img,
+        0, 0, img.width, img.height,
+        centerShift_x, centerShift_y, img.width * ratio, img.height * ratio
+      );
+    }
+
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image();
+      img.src = currentFramePath(i);
+      
+      img.onload = () => {
+        loadedCount++;
+        progressText.textContent = `${Math.floor((loadedCount / FRAME_COUNT) * 100)}%`;
+
+        if (loadedCount === 1) {
+          renderFrame(0);
+        }
+
+        if (loadedCount === FRAME_COUNT) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.style.display = 'none', 500);
+        }
+      };
+
+      images.push(img);
+    }
+
+    function updateScrollFrame() {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const maxScroll = containerRect.height - window.innerHeight;
+      
+      const scrollFraction = Math.min(
+        1,
+        Math.max(0, -containerRect.top / maxScroll)
+      );
+
+      const frameIndex = Math.min(
+        FRAME_COUNT - 1,
+        Math.floor(scrollFraction * FRAME_COUNT)
+      );
+
+      if (frameIndex !== currentFrameIndex) {
+        currentFrameIndex = frameIndex;
+        requestAnimationFrame(() => renderFrame(currentFrameIndex));
+      }
+    }
+
+    window.addEventListener("scroll", updateScrollFrame, { passive: true });
+    window.addEventListener("resize", resizeCanvas);
+    
+    resizeCanvas();
+  </script>
+</body>
+</html>
